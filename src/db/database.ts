@@ -187,7 +187,7 @@ export const db = {
   flanschen: {
     getAll: async (): Promise<Flansch[]> => {
       const { data, error } = await supabase
-        .from('flanschen').select('*').order('tag_nummer');
+        .from('flanschen').select('*').order('tag_nummer').limit(9999);
       if (error) throw error;
       return (data as FlanschRow[]).map(toFlansch);
     },
