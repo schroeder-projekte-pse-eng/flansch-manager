@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+#root {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* QR Scanner styles */
+#qr-reader {
+  width: 100% !important;
+  border: none !important;
+}
+
+#qr-reader video {
+  width: 100% !important;
+  border-radius: 0.75rem;
+}
+
+#qr-reader__scan_region {
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+#qr-reader__dashboard {
+  padding: 0 !important;
+}
+
+#qr-reader__dashboard_section_swaplink {
+  display: none !important;
+}
