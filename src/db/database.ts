@@ -186,10 +186,20 @@ export const db = {
 
   flanschen: {
     getAll: async (): Promise<Flansch[]> => {
-      const { data, error } = await supabase
-        .from('flanschen').select('*').order('tag_nummer').limit(9999);
-      if (error) throw error;
-      return (data as FlanschRow[]).map(toFlansch);
+      const pageSize = 1000;
+      let all: FlanschRow[] = [];
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from('flanschen').select('*').order('tag_nummer')
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all = all.concat(data as FlanschRow[]);
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+      return all.map(toFlansch);
     },
 
     getByTag: async (tagNummer: string): Promise<Flansch | null> => {
