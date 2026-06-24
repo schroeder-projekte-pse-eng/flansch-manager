@@ -80,6 +80,10 @@ function generateMaterialliste(flansche: Flansch[]) {
   };
 }
 
+function getSystemPrefix(tagNummer: string): string {
+  return tagNummer.match(/^(\d+)/)?.[1] ?? '';
+}
+
 // ── Component ───────────────────────────────────────────────────────────────
 
 export default function ProjectDetailPage() {
@@ -162,9 +166,33 @@ export default function ProjectDetailPage() {
   };
 
   const toggleSelect = (flanschId: number) => {
+    if (batchFilter !== 'GEOEFFNET') {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        if (next.has(flanschId)) next.delete(flanschId); else next.add(flanschId);
+        return next;
+      });
+      return;
+    }
+    // Verschließen-Modus: DN > 50 nur einzeln; sonst nur gleiches System + gleiche Nennweite
+    const flansch = filteredForBatch.find(f => f.id === flanschId);
+    if (!flansch) return;
+    if (flansch.durchmesser > 50) {
+      setSelectedIds(prev => prev.has(flanschId) ? new Set() : new Set([flanschId]));
+      return;
+    }
     setSelectedIds(prev => {
       const next = new Set(prev);
-      if (next.has(flanschId)) next.delete(flanschId); else next.add(flanschId);
+      if (next.has(flanschId)) { next.delete(flanschId); return next; }
+      const firstSelected = filteredForBatch.find(f => next.has(f.id));
+      if (firstSelected && (
+        firstSelected.durchmesser > 50 ||
+        getSystemPrefix(firstSelected.tagNummer) !== getSystemPrefix(flansch.tagNummer) ||
+        firstSelected.durchmesser !== flansch.durchmesser
+      )) {
+        return new Set([flanschId]);
+      }
+      next.add(flanschId);
       return next;
     });
   };
@@ -249,14 +277,27 @@ export default function ProjectDetailPage() {
   const batchActionLabel = batchFilter === 'PRUEFEN'
     ? 'Druckprüfung abschließen'
     : batchFilter === 'GEOEFFNET'
-      ? 'Verbindungen schließen'
-      : 'Verbindungen öffnen';
+      ? 'Flanschverbindungen verschließen'
+      : 'Flanschverbindungen öffnen';
 
   const batchTargetLabel = batchFilter === 'PRUEFEN'
     ? 'Fest verschlossen'
     : batchFilter === 'GEOEFFNET'
       ? 'Auf Dichtheit zu prüfen'
       : 'Geöffnet';
+
+  const getVerschliessInfo = (f: Flansch): { isLarge: boolean; incompatible: boolean } => {
+    if (batchFilter !== 'GEOEFFNET') return { isLarge: false, incompatible: false };
+    const isLarge = f.durchmesser > 50;
+    if (selectedIds.size === 0 || selectedIds.has(f.id)) return { isLarge, incompatible: false };
+    const firstSelected = filteredForBatch.find(x => selectedIds.has(x.id));
+    if (!firstSelected) return { isLarge, incompatible: false };
+    const incompatible =
+      firstSelected.durchmesser > 50 || isLarge ||
+      getSystemPrefix(firstSelected.tagNummer) !== getSystemPrefix(f.tagNummer) ||
+      firstSelected.durchmesser !== f.durchmesser;
+    return { isLarge, incompatible };
+  };
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
@@ -379,7 +420,7 @@ export default function ProjectDetailPage() {
             })}
           </div>
 
-          {filteredForBatch.length > 0 && (
+          {filteredForBatch.length > 0 && batchFilter !== 'GEOEFFNET' && (
             <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5">
               <button
                 onClick={toggleSelectAll}
@@ -392,6 +433,14 @@ export default function ProjectDetailPage() {
                 Alle auswählen ({filteredForBatch.length})
               </button>
               <span className="text-xs text-slate-500">{selectedIds.size} ausgewählt</span>
+            </div>
+          )}
+          {filteredForBatch.length > 0 && batchFilter === 'GEOEFFNET' && (
+            <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5">
+              <p className="text-xs text-amber-800">
+                <span className="font-semibold">Hinweis:</span> Flansche &gt; DN 50 können nur einzeln verschlossen werden. Flansche ≤ DN 50 sind gemeinsam wählbar bei gleichem System und gleicher Nennweite.
+              </p>
+              <span className="text-xs text-amber-700 font-medium shrink-0 ml-3">{selectedIds.size} gewählt</span>
             </div>
           )}
           {filteredForBatch.length === 0 && (
@@ -423,22 +472,30 @@ export default function ProjectDetailPage() {
                   ? 'border-blue-400 bg-blue-50'
                   : 'border-slate-200'}`}
             >
-              {batchMode ? (
-                <button
-                  onClick={() => toggleSelect(f.id)}
-                  className="w-full flex items-center gap-3 p-4 text-left hover:bg-blue-50/60 transition-colors"
-                >
-                  {selectedIds.has(f.id)
-                    ? <CheckSquare size={20} className="text-blue-600 shrink-0" />
-                    : <Square size={20} className="text-slate-400 shrink-0" />
-                  }
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-slate-800 text-sm">{f.tagNummer}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{f.tagNummerAusruestung} · DN {f.durchmesser} · {f.druckstufe}</p>
-                  </div>
-                  <StatusBadge status={f.status} />
-                </button>
-              ) : (
+              {batchMode ? (() => {
+                const { isLarge, incompatible } = getVerschliessInfo(f);
+                return (
+                  <button
+                    onClick={() => toggleSelect(f.id)}
+                    className={`w-full flex items-center gap-3 p-4 text-left transition-colors
+                      ${incompatible ? 'opacity-40' : 'hover:bg-blue-50/60'}`}
+                  >
+                    {selectedIds.has(f.id)
+                      ? <CheckSquare size={20} className="text-blue-600 shrink-0" />
+                      : <Square size={20} className="text-slate-400 shrink-0" />
+                    }
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-slate-800 text-sm">{f.tagNummer}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{f.tagNummerAusruestung} · DN {f.durchmesser} · {f.druckstufe}</p>
+                      {isLarge && !selectedIds.has(f.id) && (
+                        <p className="text-xs text-amber-600 mt-0.5">Nur einzeln verschließbar</p>
+                      )}
+                    </div>
+                    <StatusBadge status={f.status} />
+                  </button>
+                );
+              })()
+              : (
                 <>
                   <Link
                     to={`/flansch/${encodeURIComponent(f.tagNummer)}`}
@@ -498,7 +555,9 @@ export default function ProjectDetailPage() {
           ) : (
             <input
               type="text"
-              placeholder="Bauleiter (Vor- und Nachname) *"
+              placeholder={batchFilter === 'VERSCHLOSSEN'
+                ? 'Eingetroffen (Vor- und Nachname) *'
+                : 'Bauleiter (Vor- und Nachname) *'}
               value={batchBauleiter}
               onChange={e => setBatchBauleiter(e.target.value)}
               className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm
@@ -513,7 +572,7 @@ export default function ProjectDetailPage() {
               disabled:text-slate-400 disabled:cursor-not-allowed text-white font-semibold
               rounded-xl transition-colors text-sm"
           >
-            Auf {selectedIds.size} Flansch{selectedIds.size !== 1 ? 'e' : ''} anwenden
+            {batchActionLabel} ({selectedIds.size} Flansch{selectedIds.size !== 1 ? 'e' : ''})
           </button>
         </div>
       )}
