@@ -6,7 +6,6 @@ export interface MatchResult {
   mc: string;
   lagerplatz: string;
   artikelName: string;
-  hatBestand: boolean;
   naechsteGroessere?: boolean;
 }
 
@@ -249,12 +248,12 @@ export function matchBolzen(
 
   const exact = kandidaten.find(b => b.laenge === laenge);
   if (exact) {
-    return { mc: exact.mc, lagerplatz: exact.lagerplatz, artikelName: exact.artikelName, hatBestand: exact.verfuegbar > 0 };
+    return { mc: exact.mc, lagerplatz: exact.lagerplatz, artikelName: exact.artikelName };
   }
 
   const longer = kandidaten.filter(b => b.laenge > laenge).sort((a, b) => a.laenge - b.laenge)[0];
   if (longer) {
-    return { mc: longer.mc, lagerplatz: longer.lagerplatz, artikelName: longer.artikelName, hatBestand: longer.verfuegbar > 0, naechsteGroessere: true };
+    return { mc: longer.mc, lagerplatz: longer.lagerplatz, artikelName: longer.artikelName, naechsteGroessere: true };
   }
 
   return null;
@@ -289,5 +288,5 @@ export function matchDichtung(
   }
   if (!match) return null;
 
-  return { mc: match.mc, lagerplatz: match.lagerplatz, artikelName: match.artikelName, hatBestand: match.verfuegbar > 0 };
+  return { mc: match.mc, lagerplatz: match.lagerplatz, artikelName: match.artikelName };
 }

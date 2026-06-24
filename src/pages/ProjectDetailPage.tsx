@@ -736,9 +736,6 @@ function InventarBadge({ match }: { match: MatchResult | null }) {
       {match.naechsteGroessere && (
         <span className="text-xs text-amber-600 italic">↑ nächste größere Länge</span>
       )}
-      {!match.hatBestand && (
-        <span className="text-xs text-red-500 italic">kein Bestand</span>
-      )}
     </div>
   );
 }
