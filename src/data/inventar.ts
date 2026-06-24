@@ -25,6 +25,7 @@ interface BolzenEintrag {
 
 const BOLZEN: BolzenEintrag[] = [
   // ── VA ──────────────────────────────────────────────────────────────────────
+  { mc: '4727', durchmesser: '3/4',   laenge: 120, material: 'VA',          lagerplatz: '21-03-19',    verfuegbar: 114, artikelName: 'Schraubenbolzen 3/4 x 120 mm 2 x Mu VA' },
   { mc: '5403', durchmesser: '1/2',   laenge: 100, material: 'VA',          lagerplatz: '21-02-12',    verfuegbar: 40,  artikelName: 'Schraubenbolzen 1/2 x 100 mm 2 x Mu VA' },
   { mc: '5329', durchmesser: '7/8',   laenge: 125, material: 'VA',          lagerplatz: '21-03-20',    verfuegbar: 214, artikelName: 'Schraubenbolzen 7/8 x 125 mm 2 x Mu VA (AS20)' },
   { mc: '5332', durchmesser: '7/8',   laenge: 190, material: 'VA',          lagerplatz: '21-02-12',    verfuegbar: 14,  artikelName: 'Schraubenbolzen 7/8 x 190 mm 2 Mu VA' },
