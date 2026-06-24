@@ -12,10 +12,12 @@ import {
   Users,
   CheckSquare,
   Square,
+  MapPin,
 } from 'lucide-react';
 import { db, type Flansch, type FlanschStatus } from '../db/database';
 import StatusBadge from '../components/StatusBadge';
 import { useRealtimeQuery } from '../hooks/useRealtimeQuery';
+import { matchBolzen, matchDichtung, type MatchResult } from '../data/inventar';
 
 // ── Materialliste helpers ───────────────────────────────────────────────────
 
@@ -25,9 +27,18 @@ interface BolzenPosten {
   material: string;
   norm: string;
   anzahl: number;
+  match: MatchResult | null;
+}
+
+interface DichtungsPosten {
+  typ: string;
+  bolzenMaterial: string; // needed to determine VA vs. WE
+  anzahl: number;
+  match: MatchResult | null;
 }
 
 function generateMaterialliste(flansche: Flansch[]) {
+  // Bolts: group by diameter × length × material × norm
   const bolzenMap = new Map<string, BolzenPosten>();
   for (const f of flansche) {
     const key = `${f.bolzenDurchmesser}|${f.bolzenLaenge}|${f.bolzenMaterial}|${f.bolzenNorm}`;
@@ -41,18 +52,31 @@ function generateMaterialliste(flansche: Flansch[]) {
         material: f.bolzenMaterial,
         norm: f.bolzenNorm,
         anzahl: f.bolzenAnzahl,
+        match: matchBolzen(f.bolzenDurchmesser, f.bolzenLaenge, f.bolzenMaterial),
       });
     }
   }
-  const dichtungMap = new Map<string, number>();
+
+  // Gaskets: group by gasket type × bolt material (VA vs. WE affects inventory match)
+  const dichtungMap = new Map<string, DichtungsPosten>();
   for (const f of flansche) {
-    dichtungMap.set(f.dichtungsTyp, (dichtungMap.get(f.dichtungsTyp) ?? 0) + 1);
+    const key = `${f.dichtungsTyp}||${f.bolzenMaterial}`;
+    const ex = dichtungMap.get(key);
+    if (ex) {
+      ex.anzahl += 1;
+    } else {
+      dichtungMap.set(key, {
+        typ: f.dichtungsTyp,
+        bolzenMaterial: f.bolzenMaterial,
+        anzahl: 1,
+        match: matchDichtung(f.dichtungsTyp, f.bolzenMaterial),
+      });
+    }
   }
+
   return {
     bolzen: Array.from(bolzenMap.values()).sort((a, b) => a.durchmesser.localeCompare(b.durchmesser)),
-    dichtungen: Array.from(dichtungMap.entries())
-      .map(([typ, anzahl]) => ({ typ, anzahl }))
-      .sort((a, b) => a.typ.localeCompare(b.typ)),
+    dichtungen: Array.from(dichtungMap.values()).sort((a, b) => a.typ.localeCompare(b.typ)),
   };
 }
 
@@ -591,16 +615,19 @@ export default function ProjectDetailPage() {
                 </p>
                 <div className="space-y-2">
                   {materialliste.bolzen.map((b, i) => (
-                    <div key={i} className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-800">
-                          {b.durchmesser} × {b.laenge} mm
-                        </p>
-                        <p className="text-xs text-slate-500 mt-0.5">{b.material} · {b.norm}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-blue-700">{b.anzahl}</p>
-                        <p className="text-xs text-slate-400">Stück</p>
+                    <div key={i} className="bg-slate-50 rounded-xl px-4 py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-slate-800">
+                            {b.durchmesser}&Prime; × {b.laenge} mm
+                          </p>
+                          <p className="text-xs text-slate-500 mt-0.5">{b.material} · {b.norm}</p>
+                          <InventarBadge match={b.match} />
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-lg font-bold text-blue-700">{b.anzahl}</p>
+                          <p className="text-xs text-slate-400">Stück</p>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -618,11 +645,16 @@ export default function ProjectDetailPage() {
                 </p>
                 <div className="space-y-2">
                   {materialliste.dichtungen.map((d, i) => (
-                    <div key={i} className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3">
-                      <p className="text-sm text-slate-700 flex-1 pr-4">{d.typ}</p>
-                      <div className="text-right shrink-0">
-                        <p className="text-lg font-bold text-blue-700">{d.anzahl}</p>
-                        <p className="text-xs text-slate-400">Stück</p>
+                    <div key={i} className="bg-slate-50 rounded-xl px-4 py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-slate-700">{d.typ}</p>
+                          <InventarBadge match={d.match} />
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-lg font-bold text-blue-700">{d.anzahl}</p>
+                          <p className="text-xs text-slate-400">Stück</p>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -680,6 +712,33 @@ function DruckFeld({
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+function InventarBadge({ match }: { match: MatchResult | null }) {
+  if (!match) {
+    return (
+      <span className="inline-flex items-center gap-1 mt-1.5 text-xs text-slate-400 italic">
+        Nicht im Lager gefunden
+      </span>
+    );
+  }
+  return (
+    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+      <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-mono font-semibold px-2 py-0.5 rounded-md">
+        MC {match.mc}
+      </span>
+      <span className="inline-flex items-center gap-1 bg-slate-200 text-slate-600 text-xs px-2 py-0.5 rounded-md">
+        <MapPin size={10} />
+        {match.lagerplatz}
+      </span>
+      {match.naechsteGroessere && (
+        <span className="text-xs text-amber-600 italic">↑ nächste größere Länge</span>
+      )}
+      {!match.hatBestand && (
+        <span className="text-xs text-red-500 italic">kein Bestand</span>
+      )}
     </div>
   );
 }
