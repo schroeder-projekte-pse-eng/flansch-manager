@@ -3,6 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
 import { db, type FlanschStatus } from '../db/database';
 
+const WERKZEUG_FLAECHE: Record<string, number> = {
+  'SRT-4': 66.68,
+  'SRT-2': 30,
+};
+
 const emptyForm = {
   tagNummer: '',
   tagNummerAusruestung: '',
@@ -18,6 +23,9 @@ const emptyForm = {
   vorspannkraft: '',
   dichtungsTyp: '',
   status: 'VERSCHLOSSEN' as FlanschStatus,
+  werkzeug: '' as '' | 'SRT-4' | 'SRT-2',
+  druckA: '',
+  druckB: '',
 };
 
 type FormState = typeof emptyForm;
@@ -50,6 +58,9 @@ export default function FlangeEditPage() {
         vorspannkraft: String(f.vorspannkraft),
         dichtungsTyp: f.dichtungsTyp,
         status: f.status,
+        werkzeug: (f.werkzeug ?? '') as '' | 'SRT-4' | 'SRT-2',
+        druckA: f.druckA != null ? String(f.druckA) : '',
+        druckB: f.druckB != null ? String(f.druckB) : '',
       });
       setLoading(false);
     });
@@ -73,7 +84,9 @@ export default function FlangeEditPage() {
     if (!form.bolzenMaterial.trim()) errs.bolzenMaterial = 'Pflichtfeld';
     if (!form.bolzenNorm.trim()) errs.bolzenNorm = 'Pflichtfeld';
     if (!form.anzugsmoment || isNaN(Number(form.anzugsmoment))) errs.anzugsmoment = 'Gültige Zahl eingeben';
-    if (!form.vorspannkraft || isNaN(Number(form.vorspannkraft))) errs.vorspannkraft = 'Gültige Zahl eingeben';
+    if (!form.werkzeug && (!form.vorspannkraft || isNaN(Number(form.vorspannkraft)))) errs.vorspannkraft = 'Gültige Zahl eingeben oder Bolttensioning verwenden';
+    if (form.druckA && isNaN(Number(form.druckA))) errs.druckA = 'Gültige Zahl eingeben';
+    if (form.druckB && isNaN(Number(form.druckB))) errs.druckB = 'Gültige Zahl eingeben';
     if (!form.dichtungsTyp.trim()) errs.dichtungsTyp = 'Pflichtfeld';
     return errs;
   };
@@ -98,9 +111,12 @@ export default function FlangeEditPage() {
       bolzenMaterial: form.bolzenMaterial.trim(),
       bolzenNorm: form.bolzenNorm.trim(),
       anzugsmoment: Number(form.anzugsmoment),
-      vorspannkraft: Number(form.vorspannkraft),
+      vorspannkraft: form.vorspannkraft ? Number(form.vorspannkraft) : 0,
       dichtungsTyp: form.dichtungsTyp.trim(),
       status: form.status,
+      werkzeug: form.werkzeug || undefined,
+      druckA: form.druckA ? Number(form.druckA) : undefined,
+      druckB: form.druckB ? Number(form.druckB) : undefined,
     };
 
     if (isNew) {
@@ -208,7 +224,7 @@ export default function FlangeEditPage() {
                   placeholder="280"
                   className={inputCls(!!errors.anzugsmoment)} />
               </FormField>
-              <FormField label="Vorspannkraft (kN) *" error={errors.vorspannkraft}>
+              <FormField label="Vorspannkraft (kN)" error={errors.vorspannkraft}>
                 <input type="number" value={form.vorspannkraft} onChange={set('vorspannkraft')}
                   placeholder="45"
                   className={inputCls(!!errors.vorspannkraft)} />
@@ -219,6 +235,34 @@ export default function FlangeEditPage() {
                 placeholder="z.B. Spiralgewickelte Dichtung EN 1514-2"
                 className={inputCls(!!errors.dichtungsTyp)} />
             </FormField>
+          </Section>
+
+          <Section title="Bolttensioning (optional)">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <FormField label="Werkzeug">
+                <select value={form.werkzeug} onChange={set('werkzeug')} className={inputCls(false)}>
+                  <option value="">— nicht verwendet —</option>
+                  <option value="SRT-4">SRT-4 (A = 66,68 cm²)</option>
+                  <option value="SRT-2">SRT-2 (A = 30 cm²)</option>
+                </select>
+              </FormField>
+              <FormField label="A-Druck (bar) — 1. Runde 50%" error={errors.druckA}>
+                <input type="number" value={form.druckA} onChange={set('druckA')}
+                  placeholder="z.B. 200"
+                  className={inputCls(!!errors.druckA)} />
+              </FormField>
+              <FormField label="B-Druck (bar) — 2. Runde 50%" error={errors.druckB}>
+                <input type="number" value={form.druckB} onChange={set('druckB')}
+                  placeholder="z.B. 220"
+                  className={inputCls(!!errors.druckB)} />
+              </FormField>
+            </div>
+            {form.werkzeug && (
+              <div className="grid grid-cols-2 gap-4 mt-2">
+                <KraftAnzeige label="Kraft A" bar={form.druckA} flaeche={WERKZEUG_FLAECHE[form.werkzeug]} />
+                <KraftAnzeige label="Kraft B" bar={form.druckB} flaeche={WERKZEUG_FLAECHE[form.werkzeug]} />
+              </div>
+            )}
           </Section>
 
           <Section title="Status">
@@ -270,4 +314,17 @@ function inputCls(hasError: boolean) {
   return `w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2
     focus:ring-blue-500 focus:border-transparent transition-colors
     ${hasError ? 'border-red-400 bg-red-50' : 'border-slate-300'}`;
+}
+
+function KraftAnzeige({ label, bar, flaeche }: { label: string; bar: string; flaeche: number }) {
+  const val = bar !== '' && !isNaN(Number(bar)) ? (Number(bar) * flaeche * 0.01).toFixed(1) : null;
+  return (
+    <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+      <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">{label}</p>
+      {val !== null
+        ? <p className="text-xl font-bold text-blue-800">{val} <span className="text-sm font-normal text-blue-600">kN</span></p>
+        : <p className="text-sm text-blue-300 italic">Druck eingeben…</p>
+      }
+    </div>
+  );
 }

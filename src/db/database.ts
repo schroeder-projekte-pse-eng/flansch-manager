@@ -20,6 +20,9 @@ export interface Flansch {
   vorspannkraft: number;
   dichtungsTyp: string;
   status: FlanschStatus;
+  werkzeug?: string;
+  druckA?: number;
+  druckB?: number;
 }
 
 export interface Projekt {
@@ -70,6 +73,9 @@ interface FlanschRow {
   vorspannkraft: number;
   dichtungs_typ: string;
   status: FlanschStatus;
+  werkzeug: string | null;
+  druck_a: number | null;
+  druck_b: number | null;
 }
 
 interface ProjektRow {
@@ -121,6 +127,9 @@ function toFlansch(r: FlanschRow): Flansch {
     vorspannkraft: r.vorspannkraft,
     dichtungsTyp: r.dichtungs_typ,
     status: r.status,
+    werkzeug: r.werkzeug ?? undefined,
+    druckA: r.druck_a ?? undefined,
+    druckB: r.druck_b ?? undefined,
   };
 }
 
@@ -177,6 +186,9 @@ function flanschUpdatesToRow(u: Partial<Flansch>): Record<string, unknown> {
   if (u.vorspannkraft !== undefined)          row.vorspannkraft = u.vorspannkraft;
   if (u.dichtungsTyp !== undefined)           row.dichtungs_typ = u.dichtungsTyp;
   if (u.status !== undefined)                 row.status = u.status;
+  if (u.werkzeug !== undefined)               row.werkzeug = u.werkzeug ?? null;
+  if (u.druckA !== undefined)                 row.druck_a = u.druckA ?? null;
+  if (u.druckB !== undefined)                 row.druck_b = u.druckB ?? null;
   return row;
 }
 
@@ -250,6 +262,9 @@ export const db = {
           vorspannkraft: f.vorspannkraft,
           dichtungs_typ: f.dichtungsTyp,
           status: f.status,
+          werkzeug: f.werkzeug ?? null,
+          druck_a: f.druckA ?? null,
+          druck_b: f.druckB ?? null,
         })
         .select('id').single();
       if (error) throw error;
