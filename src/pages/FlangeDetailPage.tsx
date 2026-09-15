@@ -17,6 +17,8 @@ import { db, type Projekt, type StatusHistorie } from '../db/database';
 import StatusBadge from '../components/StatusBadge';
 import { useRealtimeQuery } from '../hooks/useRealtimeQuery';
 
+const WERKZEUG_FLAECHE: Record<string, number> = { 'SRT-4': 66.68, 'SRT-2': 30 };
+
 const STATUS_LABELS: Record<string, string> = {
   VERSCHLOSSEN: 'Fest verschlossen',
   GEOEFFNET: 'Geöffnet',
@@ -144,7 +146,23 @@ export default function FlangeDetailPage() {
           <DataRow label="Bolzenmaterial" value={flansch.bolzenMaterial} />
           <DataRow label="Bolzennorm" value={flansch.bolzenNorm} />
           <DataRow label="Anzugsmoment" value={`${flansch.anzugsmoment} Nm`} />
-          <DataRow label="Vorspannkraft" value={`${flansch.vorspannkraft} kN`} />
+          {flansch.werkzeug ? (
+            <>
+              <DataRow label="Werkzeug" value={`${flansch.werkzeug} (${WERKZEUG_FLAECHE[flansch.werkzeug]} cm²)`} />
+              <DataRow
+                label="A-Druck / Kraft A"
+                value={flansch.druckA != null
+                  ? `${flansch.druckA} bar → ${(flansch.druckA * WERKZEUG_FLAECHE[flansch.werkzeug] * 0.01).toFixed(1)} kN`
+                  : '—'}
+              />
+              <DataRow
+                label="B-Druck / Kraft B"
+                value={flansch.druckB != null
+                  ? `${flansch.druckB} bar → ${(flansch.druckB * WERKZEUG_FLAECHE[flansch.werkzeug] * 0.01).toFixed(1)} kN`
+                  : '—'}
+              />
+            </>
+          ) : null}
           <DataRow label="Dichtungstyp" value={flansch.dichtungsTyp} span />
         </div>
       </div>
