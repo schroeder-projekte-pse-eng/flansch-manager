@@ -84,7 +84,6 @@ export default function FlangeEditPage() {
     if (!form.bolzenMaterial.trim()) errs.bolzenMaterial = 'Pflichtfeld';
     if (!form.bolzenNorm.trim()) errs.bolzenNorm = 'Pflichtfeld';
     if (!form.anzugsmoment || isNaN(Number(form.anzugsmoment))) errs.anzugsmoment = 'Gültige Zahl eingeben';
-    if (!form.werkzeug && (!form.vorspannkraft || isNaN(Number(form.vorspannkraft)))) errs.vorspannkraft = 'Gültige Zahl eingeben oder Bolttensioning verwenden';
     if (form.druckA && isNaN(Number(form.druckA))) errs.druckA = 'Gültige Zahl eingeben';
     if (form.druckB && isNaN(Number(form.druckB))) errs.druckB = 'Gültige Zahl eingeben';
     if (!form.dichtungsTyp.trim()) errs.dichtungsTyp = 'Pflichtfeld';
@@ -218,51 +217,48 @@ export default function FlangeEditPage() {
           </Section>
 
           <Section title="Anzug & Dichtung">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField label="Anzugsmoment (Nm) *" error={errors.anzugsmoment}>
                 <input type="number" value={form.anzugsmoment} onChange={set('anzugsmoment')}
                   placeholder="280"
                   className={inputCls(!!errors.anzugsmoment)} />
               </FormField>
-              <FormField label="Vorspannkraft (kN)" error={errors.vorspannkraft}>
-                <input type="number" value={form.vorspannkraft} onChange={set('vorspannkraft')}
-                  placeholder="45"
-                  className={inputCls(!!errors.vorspannkraft)} />
-              </FormField>
             </div>
-            <FormField label="Dichtungstyp *" error={errors.dichtungsTyp}>
-              <input type="text" value={form.dichtungsTyp} onChange={set('dichtungsTyp')}
-                placeholder="z.B. Spiralgewickelte Dichtung EN 1514-2"
-                className={inputCls(!!errors.dichtungsTyp)} />
-            </FormField>
-          </Section>
-
-          <Section title="Bolttensioning (optional)">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <FormField label="Werkzeug">
-                <select value={form.werkzeug} onChange={set('werkzeug')} className={inputCls(false)}>
-                  <option value="">— nicht verwendet —</option>
-                  <option value="SRT-4">SRT-4 (A = 66,68 cm²)</option>
-                  <option value="SRT-2">SRT-2 (A = 30 cm²)</option>
-                </select>
-              </FormField>
-              <FormField label="A-Druck (bar) — 1. Runde 50%" error={errors.druckA}>
-                <input type="number" value={form.druckA} onChange={set('druckA')}
-                  placeholder="z.B. 200"
-                  className={inputCls(!!errors.druckA)} />
-              </FormField>
-              <FormField label="B-Druck (bar) — 2. Runde 50%" error={errors.druckB}>
-                <input type="number" value={form.druckB} onChange={set('druckB')}
-                  placeholder="z.B. 220"
-                  className={inputCls(!!errors.druckB)} />
-              </FormField>
-            </div>
-            {form.werkzeug && (
-              <div className="grid grid-cols-2 gap-4 mt-2">
-                <KraftAnzeige label="Kraft A" bar={form.druckA} flaeche={WERKZEUG_FLAECHE[form.werkzeug]} />
-                <KraftAnzeige label="Kraft B" bar={form.druckB} flaeche={WERKZEUG_FLAECHE[form.werkzeug]} />
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Bolttensioning</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <FormField label="Werkzeug">
+                  <select value={form.werkzeug} onChange={set('werkzeug')} className={inputCls(false)}>
+                    <option value="">— nicht verwendet —</option>
+                    <option value="SRT-4">SRT-4 (A = 66,68 cm²)</option>
+                    <option value="SRT-2">SRT-2 (A = 30 cm²)</option>
+                  </select>
+                </FormField>
+                <FormField label="A-Druck (bar) — 1. Runde 50%" error={errors.druckA}>
+                  <input type="number" value={form.druckA} onChange={set('druckA')}
+                    placeholder="z.B. 200"
+                    className={inputCls(!!errors.druckA)} />
+                </FormField>
+                <FormField label="B-Druck (bar) — 2. Runde 50%" error={errors.druckB}>
+                  <input type="number" value={form.druckB} onChange={set('druckB')}
+                    placeholder="z.B. 220"
+                    className={inputCls(!!errors.druckB)} />
+                </FormField>
               </div>
-            )}
+              {form.werkzeug && (
+                <div className="grid grid-cols-2 gap-4 mt-3">
+                  <KraftAnzeige label="Kraft A" bar={form.druckA} flaeche={WERKZEUG_FLAECHE[form.werkzeug]} />
+                  <KraftAnzeige label="Kraft B" bar={form.druckB} flaeche={WERKZEUG_FLAECHE[form.werkzeug]} />
+                </div>
+              )}
+            </div>
+            <div className="mt-4">
+              <FormField label="Dichtungstyp *" error={errors.dichtungsTyp}>
+                <input type="text" value={form.dichtungsTyp} onChange={set('dichtungsTyp')}
+                  placeholder="z.B. Spiralgewickelte Dichtung EN 1514-2"
+                  className={inputCls(!!errors.dichtungsTyp)} />
+              </FormField>
+            </div>
           </Section>
 
           <Section title="Status">
