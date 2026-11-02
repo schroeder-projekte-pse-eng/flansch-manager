@@ -4,8 +4,12 @@ import { ArrowLeft, Save } from 'lucide-react';
 import { db, type FlanschStatus } from '../db/database';
 
 const WERKZEUG_FLAECHE: Record<string, number> = {
+  'SRT-1': 18.67,
+  'SRT-2': 30.01,
+  'SRT-3': 44.01,
   'SRT-4': 66.68,
-  'SRT-2': 30,
+  'SRT-5': 100.03,
+  'SRT-6': 166.71,
 };
 
 const emptyForm = {
@@ -23,7 +27,7 @@ const emptyForm = {
   vorspannkraft: '',
   dichtungsTyp: '',
   status: 'VERSCHLOSSEN' as FlanschStatus,
-  werkzeug: '' as '' | 'SRT-4' | 'SRT-2',
+  werkzeug: '' as '' | 'SRT-1' | 'SRT-2' | 'SRT-3' | 'SRT-4' | 'SRT-5' | 'SRT-6',
   druckA: '',
   druckB: '',
 };
@@ -58,7 +62,7 @@ export default function FlangeEditPage() {
         vorspannkraft: String(f.vorspannkraft),
         dichtungsTyp: f.dichtungsTyp,
         status: f.status,
-        werkzeug: (f.werkzeug ?? '') as '' | 'SRT-4' | 'SRT-2',
+        werkzeug: (f.werkzeug ?? '') as '' | 'SRT-1' | 'SRT-2' | 'SRT-3' | 'SRT-4' | 'SRT-5' | 'SRT-6',
         druckA: f.druckA != null ? String(f.druckA) : '',
         druckB: f.druckB != null ? String(f.druckB) : '',
       });
@@ -230,8 +234,12 @@ export default function FlangeEditPage() {
                 <FormField label="Werkzeug">
                   <select value={form.werkzeug} onChange={set('werkzeug')} className={inputCls(false)}>
                     <option value="">— nicht verwendet —</option>
+                    <option value="SRT-1">SRT-1 (A = 18,67 cm²)</option>
+                    <option value="SRT-2">SRT-2 (A = 30,01 cm²)</option>
+                    <option value="SRT-3">SRT-3 (A = 44,01 cm²)</option>
                     <option value="SRT-4">SRT-4 (A = 66,68 cm²)</option>
-                    <option value="SRT-2">SRT-2 (A = 30 cm²)</option>
+                    <option value="SRT-5">SRT-5 (A = 100,03 cm²)</option>
+                    <option value="SRT-6">SRT-6 (A = 166,71 cm²)</option>
                   </select>
                 </FormField>
                 <FormField label="A-Druck (bar) — 1. Runde 50%" error={errors.druckA}>

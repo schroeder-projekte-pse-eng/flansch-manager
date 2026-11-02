@@ -17,7 +17,14 @@ import { db, type Projekt, type StatusHistorie } from '../db/database';
 import StatusBadge from '../components/StatusBadge';
 import { useRealtimeQuery } from '../hooks/useRealtimeQuery';
 
-const WERKZEUG_FLAECHE: Record<string, number> = { 'SRT-4': 66.68, 'SRT-2': 30 };
+const WERKZEUG_FLAECHE: Record<string, number> = {
+  'SRT-1': 18.67,
+  'SRT-2': 30.01,
+  'SRT-3': 44.01,
+  'SRT-4': 66.68,
+  'SRT-5': 100.03,
+  'SRT-6': 166.71,
+};
 
 const STATUS_LABELS: Record<string, string> = {
   VERSCHLOSSEN: 'Fest verschlossen',
